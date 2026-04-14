@@ -1,47 +1,55 @@
+const API = "https://leetmetric-y0uj.onrender.com/leetcode/";
+
 let chart;
 
 async function getData() {
     const username = document.getElementById("username").value;
-    const loader = document.getElementById("loader");
-    const result = document.getElementById("result");
     const error = document.getElementById("error");
+    const dashboard = document.getElementById("dashboard");
 
-    // ✅ RESET EVERYTHING FIRST
-    error.innerText = "";
-    result.classList.add("hidden");
-    loader.classList.remove("hidden");
+    error.textContent = "";
+    dashboard.classList.add("hidden");
 
     try {
-        const res = await fetch(`https://leetmetric-y0uj.onrender.com/leetcode/${username}`);
+        const res = await fetch(API + username);
         const data = await res.json();
 
-        console.log(data);
+        const stats = data?.data?.matchedUser?.submitStats?.acSubmissionNum;
 
-        if (!data || !data.data || !data.data.matchedUser) {
+        if (!stats) {
             throw new Error("Invalid username");
         }
 
-        const stats = data.data.matchedUser.submitStats.acSubmissionNum;
+        let easy = stats.find(x => x.difficulty === "Easy")?.count || 0;
+        let medium = stats.find(x => x.difficulty === "Medium")?.count || 0;
+        let hard = stats.find(x => x.difficulty === "Hard")?.count || 0;
 
-        let easy = stats.find(s => s.difficulty === "Easy")?.count || 0;
-        let medium = stats.find(s => s.difficulty === "Medium")?.count || 0;
-        let hard = stats.find(s => s.difficulty === "Hard")?.count || 0;
+        document.getElementById("easy").textContent = easy;
+        document.getElementById("medium").textContent = medium;
+        document.getElementById("hard").textContent = hard;
 
-        // ✅ SUCCESS UI
-        loader.classList.add("hidden");
-        result.classList.remove("hidden");
-        error.innerText = "";   // ⭐ IMPORTANT FIX
+        dashboard.classList.remove("hidden");
 
-        document.getElementById("easy").innerText = easy;
-        document.getElementById("medium").innerText = medium;
-        document.getElementById("hard").innerText = hard;
-
-        // createChart(easy, medium, hard);
+        createChart(easy, medium, hard);
 
     } catch (err) {
-        loader.classList.add("hidden");
-        result.classList.add("hidden"); // optional clean UI
-        error.innerText = "⚠️ Invalid username or server issue";
-        console.error(err);
+        error.textContent = "⚠️ Invalid username or server issue";
     }
+}
+
+function createChart(easy, medium, hard) {
+    const ctx = document.getElementById("myChart");
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+            labels: ["Easy", "Medium", "Hard"],
+            datasets: [{
+                data: [easy, medium, hard],
+                backgroundColor: ["#00C49F", "#FFBB28", "#FF4C4C"]
+            }]
+        }
+    });
 }
