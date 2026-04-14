@@ -36,7 +36,7 @@ async function getData() {
         document.getElementById("medium").innerText = medium;
         document.getElementById("hard").innerText = hard;
 
-        createChart(easy, medium, hard);
+        // createChart(easy, medium, hard);
 
     } catch (err) {
         loader.classList.add("hidden");
