@@ -11,18 +11,22 @@ async function getData() {
     loader.classList.remove("hidden");
 
     try {
-        const res = await fetch(`http://https://leetmetric-y0uj.onrender.com/leetcode/${username}`);
+        const res = await fetch(`https://leetmetric-y0uj.onrender.com/leetcode/${username}`);
         const data = await res.json();
 
-        if (data.error) {
-            throw new Error(data.error);
+        console.log(data); // 🔍 DEBUG
+
+        // ✅ safer checks
+        if (!data || !data.data || !data.data.matchedUser) {
+            throw new Error("Invalid username");
         }
 
         const stats = data.data.matchedUser.submitStats.acSubmissionNum;
 
-        let easy = stats.find(s => s.difficulty === "Easy").count;
-        let medium = stats.find(s => s.difficulty === "Medium").count;
-        let hard = stats.find(s => s.difficulty === "Hard").count;
+        // ✅ safer extraction
+        let easy = stats.find(s => s.difficulty === "Easy")?.count || 0;
+        let medium = stats.find(s => s.difficulty === "Medium")?.count || 0;
+        let hard = stats.find(s => s.difficulty === "Hard")?.count || 0;
 
         loader.classList.add("hidden");
         result.classList.remove("hidden");
@@ -35,23 +39,7 @@ async function getData() {
 
     } catch (err) {
         loader.classList.add("hidden");
-        error.innerText = "⚠️ Invalid username or server error";
+        error.innerText = "⚠️ Invalid username or server issue";
+        console.error(err);
     }
-}
-
-function createChart(easy, medium, hard) {
-    const ctx = document.getElementById("chart").getContext("2d");
-
-    if (chart) chart.destroy();
-
-    chart = new Chart(ctx, {
-        type: "doughnut",
-        data: {
-            labels: ["Easy", "Medium", "Hard"],
-            datasets: [{
-                data: [easy, medium, hard],
-                backgroundColor: ["#22c55e", "#facc15", "#ef4444"]
-            }]
-        }
-    });
 }
