@@ -162,7 +162,7 @@
 
     try {
       // ── Try your local backend first ──────────────────
-      const res = await fetch(`https://leetmetric-y0uj.onrender.com/leetcode?username=${encodeURIComponent(username)}`);
+      const res = await fetch(`https://leetmetric-y0uj.onrender.com/leetcode/${encodeURIComponent(username)}`);
       if (!res.ok) throw new Error('backend failed');
       const data = await res.json();
       render(username, data);
