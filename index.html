@@ -183,6 +183,7 @@
         totalEasy:      all.find(x => x.difficulty === 'Easy')?.count   ?? 850,
         totalMedium:    all.find(x => x.difficulty === 'Medium')?.count ?? 1800,
         totalHard:      all.find(x => x.difficulty === 'Hard')?.count   ?? 800,
+        submissionCalendar: json.data.matchedUser.submissionCalendar,
       };
 
       render(username, data);
@@ -283,7 +284,7 @@
     buildChart(easy, medium, hard);
 
     // ── Heatmap ──
-    buildHeatmap();
+    buildHeatmap(d.submissionCalendar);
 
     document.getElementById('dashboard').classList.remove('hidden');
   }
@@ -332,14 +333,30 @@
   }
 
   // ── HEATMAP ─────────────────────────────────────────────
-  function buildHeatmap() {
+  function buildHeatmap(calendarStr) {
     const wrap = document.getElementById('heatmap');
     wrap.innerHTML = '';
-    for (let i = 0; i < 91; i++) {
-      const r = Math.random();
-      const lvl = r < 0.45 ? 0 : r < 0.65 ? 1 : r < 0.80 ? 2 : r < 0.92 ? 3 : 4;
+
+    const calendar = JSON.parse(calendarStr);
+    const now = Date.now();
+    const msPerDay = 86400000;
+    const totalDays = 91; // 13 weeks
+
+    for (let i = totalDays - 1; i >= 0; i--) {
+      const dayTs = Math.floor((now - i * msPerDay) / 1000);
+      // find nearest matching timestamp (LeetCode uses midnight UTC)
+      const midnight = dayTs - (dayTs % 86400);
+      const count = calendar[midnight] ?? calendar[String(midnight)] ?? 0;
+
+      let lvl = 0;
+      if (count >= 1)  lvl = 1;
+      if (count >= 3)  lvl = 2;
+      if (count >= 6)  lvl = 3;
+      if (count >= 10) lvl = 4;
+
       const cell = document.createElement('div');
       cell.className = 'heat-cell' + (lvl ? ' heat-' + lvl : '');
+      cell.title = `${count} submission${count !== 1 ? 's' : ''}`;
       wrap.appendChild(cell);
     }
   }
