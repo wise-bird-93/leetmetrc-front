@@ -338,24 +338,18 @@
     wrap.innerHTML = '';
 
     const calendar = JSON.parse(calendarStr);
-    console.log('Calendar keys sample:', Object.keys(calendar).slice(0, 3));
-    console.log('Today midnight ts:', Math.floor(Date.now() / 86400000) * 86400);
-    
-    // Convert all keys to numbers for easy lookup
-    const calMap = {};
-    for (const [ts, count] of Object.entries(calendar)) {
-      calMap[Number(ts)] = count;
-    }
 
-    const totalDays = 91;
-    const msPerDay = 86400000;
-    const todayMidnight = Math.floor(Date.now() / msPerDay) * msPerDay; // ms
-    
-    for (let i = totalDays - 1; i >= 0; i--) {
-      const dayMs = todayMidnight - i * msPerDay;
-      const dayTs = dayMs / 1000; // convert to seconds (LeetCode uses seconds)
-      const count = calMap[dayTs] ?? 0;
+    // Get last 91 days of keys that exist, sorted
+    const allTs = Object.keys(calendar).map(Number).sort((a, b) => a - b);
+    const recent = allTs.slice(-91); // last 91 entries
 
+    // Fill to 91 cells (pad empty days at start if fewer than 91)
+    const padded = Array(91).fill(0);
+    recent.forEach((ts, i) => {
+      padded[91 - recent.length + i] = calendar[String(ts)];
+    });
+
+    padded.forEach(count => {
       let lvl = 0;
       if (count >= 1)  lvl = 1;
       if (count >= 3)  lvl = 2;
@@ -366,7 +360,7 @@
       cell.className = 'heat-cell' + (lvl ? ' heat-' + lvl : '');
       cell.title = `${count} submission${count !== 1 ? 's' : ''}`;
       wrap.appendChild(cell);
-    }
+    });
   }
 </script>
 </body>
