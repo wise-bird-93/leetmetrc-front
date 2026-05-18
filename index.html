@@ -161,20 +161,19 @@
     loader.classList.remove('hidden');
 
     try {
-      // ── Try your local backend first ──────────────────
       const res = await fetch(`https://leetmetric-y0uj.onrender.com/leetcode/${encodeURIComponent(username)}`);
       if (!res.ok) throw new Error('backend failed');
-      const data = await res.json();
+      const json = await res.json();
+      if (!json.data?.matchedUser) throw new Error('user not found');
+      const ac = json.data.matchedUser.submitStats.acSubmissionNum;
+      const easy   = ac.find(x => x.difficulty === 'Easy')?.count   ?? 0;
+      const medium = ac.find(x => x.difficulty === 'Medium')?.count ?? 0;
+      const hard   = ac.find(x => x.difficulty === 'Hard')?.count   ?? 0;
+      const data = { easy, medium, hard, totalSolved: easy + medium + hard };
       render(username, data);
-    } catch {
-      // ── Fallback: LeetCode GraphQL ────────────────────
-      try {
-        const data = await fetchLeetCode(username);
-        render(username, data);
-      } catch (err) {
-        error.textContent = `// error: user "${username}" not found or unreachable`;
-        loader.classList.add('hidden');
-      }
+    } catch (err) {
+      error.textContent = `// error: user "${username}" not found or unreachable`;
+      loader.classList.add('hidden');
     } finally {
       btn.disabled = false;
       btn.textContent = 'SCAN';
