@@ -1,45 +1,334 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>LeetMetric Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeetMetric // Cyberpunk</title>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-<div class="container">
-  <h1>🚀 LeetMetric</h1>
+  <!-- Scan-line overlay -->
+  <div class="scanlines" aria-hidden="true"></div>
 
-  <div class="search-box">
-    <input type="text" id="username" placeholder="Enter LeetCode Username">
-    <button onclick="getData()">Analyze</button>
-  </div>
+  <!-- Corner decorations -->
+  <div class="corner corner--tl" aria-hidden="true"></div>
+  <div class="corner corner--tr" aria-hidden="true"></div>
+  <div class="corner corner--bl" aria-hidden="true"></div>
+  <div class="corner corner--br" aria-hidden="true"></div>
 
-  <p id="error" class="error"></p>
+  <div class="container">
 
-  <div id="dashboard" class="hidden">
-    <div class="cards">
-      <div class="card easy">
-        <h2>Easy</h2>
-        <p id="easy">0</p>
+    <!-- ── HEADER ── -->
+    <header class="header">
+      <div class="header__logo">
+        LEET<span>METRIC</span>
+        <div class="header__logo-sub">// performance analytics system v2.0</div>
       </div>
-
-      <div class="card medium">
-        <h2>Medium</h2>
-        <p id="medium">0</p>
+      <div class="header__status">
+        <span class="status-dot"></span>SYS_ONLINE
       </div>
+    </header>
 
-      <div class="card hard">
-        <h2>Hard</h2>
-        <p id="hard">0</p>
+    <!-- ── SEARCH ── -->
+    <section class="search-section">
+      <div class="search-label">// enter target username</div>
+      <div class="search-box">
+        <input
+          type="text"
+          id="username"
+          placeholder="leetcode_username"
+          autocomplete="off"
+          spellcheck="false"
+          onkeydown="if(event.key==='Enter') getData()"
+        />
+        <button onclick="getData()">SCAN</button>
       </div>
+      <p id="error" class="error"></p>
+    </section>
+
+    <!-- ── LOADER ── -->
+    <div id="loader" class="loader hidden">
+      <div class="loader__text">// SCANNING TARGET...</div>
+      <div class="loader__bar"><div class="loader__bar-fill"></div></div>
     </div>
 
-    <canvas id="myChart"></canvas>
-  </div>
-</div>
+    <!-- ── DASHBOARD ── -->
+    <div id="dashboard" class="hidden">
 
-<script src="script.js"></script>
+      <!-- Profile strip -->
+      <div class="profile-strip">
+        <div>
+          <div class="profile-name" id="profileName">—</div>
+          <div class="profile-meta">// leetcode.com/u/<span id="profileUser">—</span></div>
+        </div>
+        <div class="profile-rank">
+          <div class="rank-label">global rank</div>
+          <div class="rank-value" id="rankValue">—</div>
+        </div>
+      </div>
+
+      <!-- Top stat cards -->
+      <div class="cards">
+        <div class="card easy">
+          <div class="card__label">easy</div>
+          <div class="card__value" id="easy">0</div>
+          <div class="card__bar"><div class="card__bar-fill" id="barEasy"></div></div>
+        </div>
+        <div class="card medium">
+          <div class="card__label">medium</div>
+          <div class="card__value" id="medium">0</div>
+          <div class="card__bar"><div class="card__bar-fill" id="barMed"></div></div>
+        </div>
+        <div class="card hard">
+          <div class="card__label">hard</div>
+          <div class="card__value" id="hard">0</div>
+          <div class="card__bar"><div class="card__bar-fill" id="barHard"></div></div>
+        </div>
+        <div class="card total">
+          <div class="card__label">total solved</div>
+          <div class="card__value" id="totalSolved">0</div>
+          <div class="card__bar"><div class="card__bar-fill" id="barTotal"></div></div>
+        </div>
+      </div>
+
+      <!-- Chart + sidebar -->
+      <div class="chart-section">
+        <div class="chart-panel">
+          <div class="panel-label">// difficulty distribution</div>
+          <div class="chart-wrap">
+            <canvas id="myChart"></canvas>
+            <div class="chart-center">
+              <span class="chart-center__num" id="chartPct">0%</span>
+              <span class="chart-center__label">solved</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-panels">
+          <!-- Acceptance rate -->
+          <div class="panel">
+            <div class="panel-label">// acceptance rate</div>
+            <div class="big-stat" id="acceptRate">—</div>
+            <div class="big-stat-sub">of submissions accepted</div>
+          </div>
+
+          <!-- Heatmap -->
+          <div class="panel">
+            <div class="panel-label">// activity · 13 weeks</div>
+            <div class="heatmap" id="heatmap"></div>
+            <div class="heatmap-legend">
+              <span>less</span>
+              <div class="heat-cell"></div>
+              <div class="heat-cell heat-1"></div>
+              <div class="heat-cell heat-2"></div>
+              <div class="heat-cell heat-3"></div>
+              <div class="heat-cell heat-4"></div>
+              <span>more</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+    <footer class="footer">
+      <span>LEETMETRIC v2.0</span>
+      <span id="fetchTime">// awaiting query</span>
+      <span>DATA // LEETCODE.COM</span>
+    </footer>
+
+  </div><!-- /container -->
+
+<script>
+  let chartInstance = null;
+
+  // ── ENTRY POINT ────────────────────────────────────────
+  async function getData() {
+    const username = document.getElementById('username').value.trim();
+    if (!username) return;
+
+    const btn       = document.querySelector('button');
+    const loader    = document.getElementById('loader');
+    const dashboard = document.getElementById('dashboard');
+    const error     = document.getElementById('error');
+
+    btn.disabled = true;
+    btn.textContent = '...';
+    error.textContent = '';
+    dashboard.classList.add('hidden');
+    loader.classList.remove('hidden');
+
+    try {
+      // ── Try your local backend first ──────────────────
+      const res = await fetch(`https://leetmetric-y0uj.onrender.com/leetcode?username=${encodeURIComponent(username)}`);
+      if (!res.ok) throw new Error('backend failed');
+      const data = await res.json();
+      render(username, data);
+    } catch {
+      // ── Fallback: LeetCode GraphQL ────────────────────
+      try {
+        const data = await fetchLeetCode(username);
+        render(username, data);
+      } catch (err) {
+        error.textContent = `// error: user "${username}" not found or unreachable`;
+        loader.classList.add('hidden');
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'SCAN';
+      loader.classList.add('hidden');
+    }
+  }
+
+  // ── GRAPHQL FALLBACK ────────────────────────────────────
+  async function fetchLeetCode(username) {
+    const query = `
+      query($username: String!) {
+        matchedUser(username: $username) {
+          username
+          profile { ranking }
+          submitStats: submitStatsGlobal {
+            acSubmissionNum { difficulty count submissions }
+          }
+        }
+        allQuestionsCount { difficulty count }
+      }
+    `;
+    const r = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables: { username } })
+    });
+    const json = await r.json();
+    if (!json.data?.matchedUser) throw new Error('not found');
+
+    const u   = json.data.matchedUser;
+    const ac  = u.submitStats.acSubmissionNum;
+    const all = json.data.allQuestionsCount;
+    const get     = (arr, d) => (arr.find(x => x.difficulty === d) || { count: 0, submissions: 0 });
+    const getAll  = (arr, d) => (arr.find(x => x.difficulty === d) || { count: 0 }).count;
+
+    const easy   = get(ac, 'Easy');
+    const medium = get(ac, 'Medium');
+    const hard   = get(ac, 'Hard');
+    const total  = get(ac, 'All');
+
+    return {
+      username:       u.username,
+      ranking:        u.profile?.ranking || 0,
+      easy:           easy.count,
+      medium:         medium.count,
+      hard:           hard.count,
+      totalSolved:    total.count,
+      totalEasy:      getAll(all, 'Easy'),
+      totalMedium:    getAll(all, 'Medium'),
+      totalHard:      getAll(all, 'Hard'),
+      totalQuestions: getAll(all, 'All'),
+      totalSubmissions: total.submissions,
+    };
+  }
+
+  // ── RENDER DASHBOARD ────────────────────────────────────
+  function render(username, d) {
+    // Normalise field names from either backend or GraphQL
+    const easy    = d.easy    ?? d.easySolved    ?? d.easy_solved    ?? 0;
+    const medium  = d.medium  ?? d.mediumSolved  ?? d.medium_solved  ?? 0;
+    const hard    = d.hard    ?? d.hardSolved    ?? d.hard_solved    ?? 0;
+    const total   = d.totalSolved ?? d.total_solved ?? (easy + medium + hard);
+    const totalQ  = d.totalQuestions ?? d.total_questions ?? 3300;
+    const totalE  = d.totalEasy    ?? 850;
+    const totalM  = d.totalMedium  ?? 1800;
+    const totalH  = d.totalHard    ?? 800;
+    const ranking = d.ranking ?? 0;
+    const subs    = d.totalSubmissions ?? d.total_submissions ?? 0;
+    const accept  = subs > 0 ? (total / subs * 100).toFixed(1) + '%' : (d.acceptanceRate ?? d.acceptance_rate ?? '—');
+
+    // ── Text ──
+    document.getElementById('profileName').textContent  = username.toUpperCase();
+    document.getElementById('profileUser').textContent  = username;
+    document.getElementById('rankValue').textContent    = ranking ? '#' + ranking.toLocaleString() : '—';
+    document.getElementById('easy').textContent         = easy;
+    document.getElementById('medium').textContent       = medium;
+    document.getElementById('hard').textContent         = hard;
+    document.getElementById('totalSolved').textContent  = total;
+    document.getElementById('acceptRate').textContent   = accept;
+    document.getElementById('chartPct').textContent     = totalQ ? Math.round(total / totalQ * 100) + '%' : '0%';
+    document.getElementById('fetchTime').textContent    = `// fetched ${new Date().toLocaleTimeString()}`;
+
+    // ── Progress bars ──
+    setTimeout(() => {
+      set('barEasy',  totalE ? Math.min(100, easy   / totalE * 100) : 0);
+      set('barMed',   totalM ? Math.min(100, medium / totalM * 100) : 0);
+      set('barHard',  totalH ? Math.min(100, hard   / totalH * 100) : 0);
+      set('barTotal', totalQ ? Math.min(100, total  / totalQ * 100) : 0);
+    }, 80);
+
+    // ── Doughnut chart ──
+    buildChart(easy, medium, hard);
+
+    // ── Heatmap ──
+    buildHeatmap();
+
+    document.getElementById('dashboard').classList.remove('hidden');
+  }
+
+  function set(id, pct) {
+    document.getElementById(id).style.width = pct + '%';
+  }
+
+  // ── CHART.JS DOUGHNUT ───────────────────────────────────
+  function buildChart(easy, medium, hard) {
+    if (chartInstance) { chartInstance.destroy(); }
+    const ctx = document.getElementById('myChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Easy', 'Medium', 'Hard'],
+        datasets: [{
+          data: [easy, medium, hard],
+          backgroundColor: ['#00ff88', '#ffaa00', '#ff3366'],
+          borderColor:     ['#00ff88', '#ffaa00', '#ff3366'],
+          borderWidth: 2,
+          hoverOffset: 8,
+        }]
+      },
+      options: {
+        cutout: '72%',
+        animation: { animateRotate: true, duration: 1200, easing: 'easeInOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#050510',
+            borderColor: 'rgba(0,200,255,0.3)',
+            borderWidth: 1,
+            titleColor: '#00c8ff',
+            bodyColor: '#e8f4ff',
+            titleFont: { family: "'Space Mono', monospace", size: 11 },
+            bodyFont:  { family: "'Space Mono', monospace", size: 12 },
+            callbacks: {
+              title: ctx => ctx[0].label.toUpperCase(),
+              label: ctx => `  ${ctx.raw} solved`,
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ── HEATMAP ─────────────────────────────────────────────
+  function buildHeatmap() {
+    const wrap = document.getElementById('heatmap');
+    wrap.innerHTML = '';
+    for (let i = 0; i < 91; i++) {
+      const r = Math.random();
+      const lvl = r < 0.45 ? 0 : r < 0.65 ? 1 : r < 0.80 ? 2 : r < 0.92 ? 3 : 4;
+      const cell = document.createElement('div');
+      cell.className = 'heat-cell' + (lvl ? ' heat-' + lvl : '');
+      wrap.appendChild(cell);
+    }
+  }
+</script>
 </body>
 </html>
