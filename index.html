@@ -338,15 +338,21 @@
     wrap.innerHTML = '';
 
     const calendar = JSON.parse(calendarStr);
-    const now = Date.now();
-    const msPerDay = 86400000;
-    const totalDays = 91; // 13 weeks
+    
+    // Convert all keys to numbers for easy lookup
+    const calMap = {};
+    for (const [ts, count] of Object.entries(calendar)) {
+      calMap[Number(ts)] = count;
+    }
 
+    const totalDays = 91;
+    const msPerDay = 86400000;
+    const todayMidnight = Math.floor(Date.now() / msPerDay) * msPerDay; // ms
+    
     for (let i = totalDays - 1; i >= 0; i--) {
-      const dayTs = Math.floor((now - i * msPerDay) / 1000);
-      // find nearest matching timestamp (LeetCode uses midnight UTC)
-      const midnight = dayTs - (dayTs % 86400);
-      const count = calendar[midnight] ?? calendar[String(midnight)] ?? 0;
+      const dayMs = todayMidnight - i * msPerDay;
+      const dayTs = dayMs / 1000; // convert to seconds (LeetCode uses seconds)
+      const count = calMap[dayTs] ?? 0;
 
       let lvl = 0;
       if (count >= 1)  lvl = 1;
