@@ -165,11 +165,26 @@
       if (!res.ok) throw new Error('backend failed');
       const json = await res.json();
       if (!json.data?.matchedUser) throw new Error('user not found');
-      const ac = json.data.matchedUser.submitStats.acSubmissionNum;
+
+      const ac  = json.data.matchedUser.submitStats.acSubmissionNum;
+      const all = json.data.allQuestionsCount;
+
       const easy   = ac.find(x => x.difficulty === 'Easy')?.count   ?? 0;
       const medium = ac.find(x => x.difficulty === 'Medium')?.count ?? 0;
       const hard   = ac.find(x => x.difficulty === 'Hard')?.count   ?? 0;
-      const data = { easy, medium, hard, totalSolved: easy + medium + hard };
+      const totalSolved = ac.find(x => x.difficulty === 'All')?.count ?? (easy + medium + hard);
+      const totalSubs   = ac.find(x => x.difficulty === 'All')?.submissions ?? 0;
+
+      const data = {
+        easy, medium, hard, totalSolved,
+        totalSubmissions: totalSubs,
+        ranking:        json.data.matchedUser.profile?.ranking ?? 0,
+        totalQuestions: all.find(x => x.difficulty === 'All')?.count    ?? 3400,
+        totalEasy:      all.find(x => x.difficulty === 'Easy')?.count   ?? 850,
+        totalMedium:    all.find(x => x.difficulty === 'Medium')?.count ?? 1800,
+        totalHard:      all.find(x => x.difficulty === 'Hard')?.count   ?? 800,
+      };
+
       render(username, data);
     } catch (err) {
       error.textContent = `// error: user "${username}" not found or unreachable`;
