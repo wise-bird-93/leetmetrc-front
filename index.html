@@ -109,9 +109,9 @@
         <div class="side-panels">
           <!-- Acceptance rate -->
           <div class="panel">
-            <div class="panel-label">// acceptance rate</div>
+            <div class="panel-label">// total submissions</div>
             <div class="big-stat" id="acceptRate">—</div>
-            <div class="big-stat-sub">of submissions accepted</div>
+            <div class="big-stat-sub">accepted submissions made</div>
           </div>
 
           <!-- Heatmap -->
@@ -257,7 +257,7 @@
     const totalH  = d.totalHard    ?? 800;
     const ranking = d.ranking ?? 0;
     const subs    = d.totalSubmissions ?? d.total_submissions ?? 0;
-    const accept  = subs > 0 ? (total / subs * 100).toFixed(1) + '%' : (d.acceptanceRate ?? d.acceptance_rate ?? '—');
+    const accept = d.totalSubmissions > 0 ? d.totalSubmissions : '—';
 
     // ── Text ──
     document.getElementById('profileName').textContent  = username.toUpperCase();
