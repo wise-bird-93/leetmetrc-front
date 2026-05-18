@@ -338,6 +338,8 @@
     wrap.innerHTML = '';
 
     const calendar = JSON.parse(calendarStr);
+    console.log('Calendar keys sample:', Object.keys(calendar).slice(0, 3));
+    console.log('Today midnight ts:', Math.floor(Date.now() / 86400000) * 86400);
     
     // Convert all keys to numbers for easy lookup
     const calMap = {};
