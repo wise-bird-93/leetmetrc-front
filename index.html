@@ -5,14 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LeetMetric // Cyberpunk</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <!-- Scan-line overlay -->
   <div class="scanlines" aria-hidden="true"></div>
-
-  <!-- Corner decorations -->
   <div class="corner corner--tl" aria-hidden="true"></div>
   <div class="corner corner--tr" aria-hidden="true"></div>
   <div class="corner corner--bl" aria-hidden="true"></div>
@@ -20,7 +16,7 @@
 
   <div class="container">
 
-    <!-- ── HEADER ── -->
+    <!-- HEADER -->
     <header class="header">
       <div class="header__logo">
         LEET<span>METRIC</span>
@@ -31,7 +27,7 @@
       </div>
     </header>
 
-    <!-- ── SEARCH ── -->
+    <!-- SEARCH -->
     <section class="search-section">
       <div class="search-label">// enter target username</div>
       <div class="search-box">
@@ -48,13 +44,13 @@
       <p id="error" class="error"></p>
     </section>
 
-    <!-- ── LOADER ── -->
+    <!-- LOADER -->
     <div id="loader" class="loader hidden">
       <div class="loader__text">// SCANNING TARGET...</div>
       <div class="loader__bar"><div class="loader__bar-fill"></div></div>
     </div>
 
-    <!-- ── DASHBOARD ── -->
+    <!-- DASHBOARD -->
     <div id="dashboard" class="hidden">
 
       <!-- Profile strip -->
@@ -69,7 +65,7 @@
         </div>
       </div>
 
-      <!-- Top stat cards -->
+      <!-- Stat cards -->
       <div class="cards">
         <div class="card easy">
           <div class="card__label">easy</div>
@@ -93,45 +89,61 @@
         </div>
       </div>
 
-      <!-- Chart + sidebar -->
-      <div class="chart-section">
-        <div class="chart-panel">
-          <div class="panel-label">// difficulty distribution</div>
-          <div class="chart-wrap">
-            <canvas id="myChart"></canvas>
-            <div class="chart-center">
-              <span class="chart-center__num" id="chartPct">0%</span>
-              <span class="chart-center__label">solved</span>
-            </div>
+      <!-- New feature panels -->
+      <div class="feature-grid">
+
+        <!-- 1: Skill Tier -->
+        <div class="panel feat-tier">
+          <div class="panel-label">// skill tier</div>
+          <div class="tier-badge" id="tierBadge">—</div>
+          <div class="tier-desc" id="tierDesc">—</div>
+          <div class="tier-bar-wrap">
+            <div class="tier-bar"><div class="tier-bar-fill" id="tierBarFill"></div></div>
+            <div class="tier-bar-label" id="tierBarLabel">—</div>
           </div>
         </div>
 
-        <div class="side-panels">
-          <!-- Acceptance rate -->
-          <div class="panel">
-            <div class="panel-label">// total submissions</div>
-            <div class="big-stat" id="acceptRate">—</div>
-            <div class="big-stat-sub">accepted submissions made</div>
+        <!-- 2: Solving Pace -->
+        <div class="panel feat-pace">
+          <div class="panel-label">// solving pace</div>
+          <div class="pace-main">
+            <div class="pace-num" id="paceNum">—</div>
+            <div class="pace-unit">problems / month</div>
           </div>
+          <div class="pace-breakdown" id="paceBreakdown"></div>
+        </div>
 
-          <!-- Heatmap -->
-          <div class="panel">
-            <div class="panel-label">// activity · 13 weeks</div>
-            <div class="heatmap" id="heatmap"></div>
-            <div class="heatmap-legend">
-              <span>less</span>
-              <div class="heat-cell"></div>
-              <div class="heat-cell heat-1"></div>
-              <div class="heat-cell heat-2"></div>
-              <div class="heat-cell heat-3"></div>
-              <div class="heat-cell heat-4"></div>
-              <span>more</span>
+        <!-- 3: Consistency Score -->
+        <div class="panel feat-consistency">
+          <div class="panel-label">// consistency score</div>
+          <div class="consistency-wrap">
+            <svg class="ring-svg" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="50" />
+              <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="50"
+                stroke-dasharray="314"
+                stroke-dashoffset="314" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-num" id="consistencyNum">0</span>
+              <span class="ring-label">/ 100</span>
             </div>
           </div>
+          <div class="consistency-detail" id="consistencyDetail">—</div>
         </div>
+
+        <!-- 4: Best Streak -->
+        <div class="panel feat-streak">
+          <div class="panel-label">// best streak</div>
+          <div class="streak-main">
+            <div class="streak-num" id="streakNum">—</div>
+            <div class="streak-unit">days in a row</div>
+          </div>
+          <div class="streak-sub" id="streakSub">—</div>
+        </div>
+
       </div>
 
-    </div><!-- /dashboard -->
+    </div>
 
     <footer class="footer">
       <span>LEETMETRIC v2.0</span>
@@ -139,12 +151,10 @@
       <span>DATA // LEETCODE.COM</span>
     </footer>
 
-  </div><!-- /container -->
+  </div>
 
 <script>
-  let chartInstance = null;
 
-  // ── ENTRY POINT ────────────────────────────────────────
   async function getData() {
     const username = document.getElementById('username').value.trim();
     if (!username) return;
@@ -169,21 +179,19 @@
       const ac  = json.data.matchedUser.submitStats.acSubmissionNum;
       const all = json.data.allQuestionsCount;
 
-      const easy   = ac.find(x => x.difficulty === 'Easy')?.count   ?? 0;
-      const medium = ac.find(x => x.difficulty === 'Medium')?.count ?? 0;
-      const hard   = ac.find(x => x.difficulty === 'Hard')?.count   ?? 0;
-      const totalSolved = ac.find(x => x.difficulty === 'All')?.count ?? (easy + medium + hard);
-      const totalSubs   = ac.find(x => x.difficulty === 'All')?.submissions ?? 0;
+      const easy        = ac.find(x => x.difficulty === 'Easy')?.count   ?? 0;
+      const medium      = ac.find(x => x.difficulty === 'Medium')?.count ?? 0;
+      const hard        = ac.find(x => x.difficulty === 'Hard')?.count   ?? 0;
+      const totalSolved = ac.find(x => x.difficulty === 'All')?.count    ?? (easy + medium + hard);
 
       const data = {
         easy, medium, hard, totalSolved,
-        totalSubmissions: totalSubs,
         ranking:        json.data.matchedUser.profile?.ranking ?? 0,
         totalQuestions: all.find(x => x.difficulty === 'All')?.count    ?? 3400,
         totalEasy:      all.find(x => x.difficulty === 'Easy')?.count   ?? 850,
         totalMedium:    all.find(x => x.difficulty === 'Medium')?.count ?? 1800,
         totalHard:      all.find(x => x.difficulty === 'Hard')?.count   ?? 800,
-        submissionCalendar: json.data.matchedUser.submissionCalendar,
+        submissionCalendar: json.data.matchedUser.submissionCalendar ?? '{}',
       };
 
       render(username, data);
@@ -197,171 +205,217 @@
     }
   }
 
-  // ── GRAPHQL FALLBACK ────────────────────────────────────
-  async function fetchLeetCode(username) {
-    const query = `
-      query($username: String!) {
-        matchedUser(username: $username) {
-          username
-          profile { ranking }
-          submitStats: submitStatsGlobal {
-            acSubmissionNum { difficulty count submissions }
-          }
-        }
-        allQuestionsCount { difficulty count }
-      }
-    `;
-    const r = await fetch('https://leetcode.com/graphql', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables: { username } })
-    });
-    const json = await r.json();
-    if (!json.data?.matchedUser) throw new Error('not found');
-
-    const u   = json.data.matchedUser;
-    const ac  = u.submitStats.acSubmissionNum;
-    const all = json.data.allQuestionsCount;
-    const get     = (arr, d) => (arr.find(x => x.difficulty === d) || { count: 0, submissions: 0 });
-    const getAll  = (arr, d) => (arr.find(x => x.difficulty === d) || { count: 0 }).count;
-
-    const easy   = get(ac, 'Easy');
-    const medium = get(ac, 'Medium');
-    const hard   = get(ac, 'Hard');
-    const total  = get(ac, 'All');
-
-    return {
-      username:       u.username,
-      ranking:        u.profile?.ranking || 0,
-      easy:           easy.count,
-      medium:         medium.count,
-      hard:           hard.count,
-      totalSolved:    total.count,
-      totalEasy:      getAll(all, 'Easy'),
-      totalMedium:    getAll(all, 'Medium'),
-      totalHard:      getAll(all, 'Hard'),
-      totalQuestions: getAll(all, 'All'),
-      totalSubmissions: total.submissions,
-    };
-  }
-
-  // ── RENDER DASHBOARD ────────────────────────────────────
+  // ── RENDER ──────────────────────────────────────────────
   function render(username, d) {
-    // Normalise field names from either backend or GraphQL
-    const easy    = d.easy    ?? d.easySolved    ?? d.easy_solved    ?? 0;
-    const medium  = d.medium  ?? d.mediumSolved  ?? d.medium_solved  ?? 0;
-    const hard    = d.hard    ?? d.hardSolved    ?? d.hard_solved    ?? 0;
-    const total   = d.totalSolved ?? d.total_solved ?? (easy + medium + hard);
-    const totalQ  = d.totalQuestions ?? d.total_questions ?? 3300;
-    const totalE  = d.totalEasy    ?? 850;
-    const totalM  = d.totalMedium  ?? 1800;
-    const totalH  = d.totalHard    ?? 800;
-    const ranking = d.ranking ?? 0;
-    const subs    = d.totalSubmissions ?? d.total_submissions ?? 0;
-    const accept = d.totalSubmissions > 0 ? d.totalSubmissions : '—';
+    const { easy, medium, hard, totalSolved, ranking,
+            totalQuestions, totalEasy, totalMedium, totalHard,
+            submissionCalendar } = d;
 
-    // ── Text ──
-    document.getElementById('profileName').textContent  = username.toUpperCase();
-    document.getElementById('profileUser').textContent  = username;
-    document.getElementById('rankValue').textContent    = ranking ? '#' + ranking.toLocaleString() : '—';
-    document.getElementById('easy').textContent         = easy;
-    document.getElementById('medium').textContent       = medium;
-    document.getElementById('hard').textContent         = hard;
-    document.getElementById('totalSolved').textContent  = total;
-    document.getElementById('acceptRate').textContent   = accept;
-    document.getElementById('chartPct').textContent     = totalQ ? Math.round(total / totalQ * 100) + '%' : '0%';
-    document.getElementById('fetchTime').textContent    = `// fetched ${new Date().toLocaleTimeString()}`;
+    // Basic fields
+    document.getElementById('profileName').textContent = username.toUpperCase();
+    document.getElementById('profileUser').textContent = username;
+    document.getElementById('rankValue').textContent   = ranking ? '#' + ranking.toLocaleString() : '—';
+    document.getElementById('easy').textContent        = easy;
+    document.getElementById('medium').textContent      = medium;
+    document.getElementById('hard').textContent        = hard;
+    document.getElementById('totalSolved').textContent = totalSolved;
+    document.getElementById('fetchTime').textContent   = `// fetched ${new Date().toLocaleTimeString()}`;
 
-    // ── Progress bars ──
+    // Progress bars
     setTimeout(() => {
-      set('barEasy',  totalE ? Math.min(100, easy   / totalE * 100) : 0);
-      set('barMed',   totalM ? Math.min(100, medium / totalM * 100) : 0);
-      set('barHard',  totalH ? Math.min(100, hard   / totalH * 100) : 0);
-      set('barTotal', totalQ ? Math.min(100, total  / totalQ * 100) : 0);
+      setBar('barEasy',  totalEasy   ? Math.min(100, easy   / totalEasy   * 100) : 0);
+      setBar('barMed',   totalMedium ? Math.min(100, medium / totalMedium * 100) : 0);
+      setBar('barHard',  totalHard   ? Math.min(100, hard   / totalHard   * 100) : 0);
+      setBar('barTotal', totalQuestions ? Math.min(100, totalSolved / totalQuestions * 100) : 0);
     }, 80);
 
-    // ── Doughnut chart ──
-    buildChart(easy, medium, hard);
+    // Parse calendar
+    const calendar = parseCalendar(submissionCalendar);
 
-    // ── Heatmap ──
-    buildHeatmap(d.submissionCalendar);
+    // Features
+    renderSkillTier(easy, medium, hard, totalSolved);
+    renderPace(calendar);
+    renderConsistency(calendar);
+    renderStreak(calendar);
 
     document.getElementById('dashboard').classList.remove('hidden');
   }
 
-  function set(id, pct) {
+  function setBar(id, pct) {
     document.getElementById(id).style.width = pct + '%';
   }
 
-  // ── CHART.JS DOUGHNUT ───────────────────────────────────
-  function buildChart(easy, medium, hard) {
-    if (chartInstance) { chartInstance.destroy(); }
-    const ctx = document.getElementById('myChart').getContext('2d');
-    chartInstance = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Easy', 'Medium', 'Hard'],
-        datasets: [{
-          data: [easy, medium, hard],
-          backgroundColor: ['#00ff88', '#ffaa00', '#ff3366'],
-          borderColor:     ['#00ff88', '#ffaa00', '#ff3366'],
-          borderWidth: 2,
-          hoverOffset: 8,
-        }]
-      },
-      options: {
-        cutout: '72%',
-        animation: { animateRotate: true, duration: 1200, easing: 'easeInOutQuart' },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#050510',
-            borderColor: 'rgba(0,200,255,0.3)',
-            borderWidth: 1,
-            titleColor: '#00c8ff',
-            bodyColor: '#e8f4ff',
-            titleFont: { family: "'Space Mono', monospace", size: 11 },
-            bodyFont:  { family: "'Space Mono', monospace", size: 12 },
-            callbacks: {
-              title: ctx => ctx[0].label.toUpperCase(),
-              label: ctx => `  ${ctx.raw} solved`,
-            }
-          }
-        }
+  // ── CALENDAR PARSER ──────────────────────────────────────
+  function parseCalendar(calStr) {
+    try {
+      return JSON.parse(calStr);
+    } catch {
+      return {};
+    }
+  }
+
+  // ── FEATURE 1: SKILL TIER ────────────────────────────────
+  function renderSkillTier(easy, medium, hard, total) {
+    if (total === 0) return;
+
+    const hardRatio   = hard / total;
+    const mediumRatio = medium / total;
+
+    let tier, desc, pct, color;
+
+    if (hard >= 100 || hardRatio >= 0.2) {
+      tier = 'ELITE'; desc = 'Top-tier problem solver'; pct = 100; color = '#ff3366';
+    } else if (hard >= 50 || hardRatio >= 0.12) {
+      tier = 'ADVANCED'; desc = 'Strong algorithmic thinker'; pct = 75; color = '#ffaa00';
+    } else if (medium >= 100 || mediumRatio >= 0.4) {
+      tier = 'INTERMEDIATE'; desc = 'Solid DS&A foundations'; pct = 50; color = '#00c8ff';
+    } else {
+      tier = 'BEGINNER'; desc = 'Building the fundamentals'; pct = 25; color = '#00ff88';
+    }
+
+    const badge = document.getElementById('tierBadge');
+    badge.textContent = tier;
+    badge.style.color = color;
+    badge.style.textShadow = `0 0 24px ${color}`;
+    document.getElementById('tierDesc').textContent = desc;
+    document.getElementById('tierBarLabel').textContent = `${pct}% to max`;
+
+    setTimeout(() => {
+      const fill = document.getElementById('tierBarFill');
+      fill.style.width = pct + '%';
+      fill.style.background = color;
+      fill.style.boxShadow = `0 0 8px ${color}`;
+    }, 150);
+  }
+
+  // ── FEATURE 2: SOLVING PACE ──────────────────────────────
+  function renderPace(calendar) {
+    const entries = Object.entries(calendar).map(([ts, c]) => ({
+      ts: Number(ts) * 1000, count: c
+    })).sort((a, b) => a.ts - b.ts);
+
+    if (entries.length === 0) {
+      document.getElementById('paceNum').textContent = '0';
+      return;
+    }
+
+    const now      = Date.now();
+    const msMonth  = 30 * 24 * 3600 * 1000;
+
+    // last 30 days
+    const last30   = entries.filter(e => e.ts >= now - msMonth).reduce((s, e) => s + e.count, 0);
+    // last 90 days avg
+    const last90   = entries.filter(e => e.ts >= now - 3 * msMonth).reduce((s, e) => s + e.count, 0);
+    const avg90    = Math.round(last90 / 3);
+    // all time avg
+    const firstTs  = entries[0].ts;
+    const months   = Math.max(1, (now - firstTs) / msMonth);
+    const total    = entries.reduce((s, e) => s + e.count, 0);
+    const allTime  = Math.round(total / months);
+
+    document.getElementById('paceNum').textContent = last30 || avg90 || allTime || '—';
+
+    const breakdown = document.getElementById('paceBreakdown');
+    breakdown.innerHTML = `
+      <div class="pace-row"><span class="pace-row-label">last 30 days</span><span class="pace-row-val">${last30}</span></div>
+      <div class="pace-row"><span class="pace-row-label">3-month avg</span><span class="pace-row-val">${avg90}/mo</span></div>
+      <div class="pace-row"><span class="pace-row-label">all-time avg</span><span class="pace-row-val">${allTime}/mo</span></div>
+    `;
+  }
+
+  // ── FEATURE 3: CONSISTENCY SCORE ────────────────────────
+  function renderConsistency(calendar) {
+    const entries = Object.keys(calendar).map(Number).sort((a, b) => a - b);
+    if (entries.length === 0) return;
+
+    const now      = Math.floor(Date.now() / 1000);
+    const day      = 86400;
+    const window90 = 90;
+
+    // active days in last 90 days
+    const activeDays = entries.filter(ts => ts >= now - window90 * day).length;
+    const ratio      = activeDays / window90; // 0–1
+
+    // longest streak in last 90 days
+    let streak = 0, maxStreak = 0;
+    const set90 = new Set(entries.filter(ts => ts >= now - window90 * day));
+    set90.forEach(ts => {
+      if (!set90.has(ts - day)) {
+        let cur = ts;
+        while (set90.has(cur)) { streak++; cur += day; }
+        maxStreak = Math.max(maxStreak, streak);
+        streak = 0;
       }
     });
+
+    // score: 60% from active days ratio, 40% from streak
+    const streakScore = Math.min(maxStreak / 30, 1); // max out at 30-day streak
+    const score = Math.round((ratio * 60 + streakScore * 40));
+
+    document.getElementById('consistencyNum').textContent = score;
+    document.getElementById('consistencyDetail').textContent =
+      `${activeDays} active days in last 90 · best ${maxStreak}-day streak`;
+
+    // animate ring
+    setTimeout(() => {
+      const circumference = 314;
+      const offset = circumference - (score / 100) * circumference;
+      const ring = document.getElementById('ringFill');
+      ring.style.strokeDashoffset = offset;
+      // color based on score
+      const color = score >= 70 ? '#00ff88' : score >= 40 ? '#ffaa00' : '#ff3366';
+      ring.style.stroke = color;
+    }, 200);
   }
 
-  // ── HEATMAP ─────────────────────────────────────────────
-  function buildHeatmap(calendarStr) {
-    const wrap = document.getElementById('heatmap');
-    wrap.innerHTML = '';
+  // ── FEATURE 4: BEST STREAK ───────────────────────────────
+  function renderStreak(calendar) {
+    const entries = Object.keys(calendar).map(Number).sort((a, b) => a - b);
+    if (entries.length === 0) {
+      document.getElementById('streakNum').textContent = '0';
+      document.getElementById('streakSub').textContent = 'no activity found';
+      return;
+    }
 
-    const calendar = JSON.parse(calendarStr);
+    const day = 86400;
+    const tsSet = new Set(entries);
 
-    // Get last 91 days of keys that exist, sorted
-    const allTs = Object.keys(calendar).map(Number).sort((a, b) => a - b);
-    const recent = allTs.slice(-91); // last 91 entries
+    let bestStreak = 0, bestStart = 0, bestEnd = 0;
+    let curStreak = 0, curStart = 0;
 
-    // Fill to 91 cells (pad empty days at start if fewer than 91)
-    const padded = Array(91).fill(0);
-    recent.forEach((ts, i) => {
-      padded[91 - recent.length + i] = calendar[String(ts)];
+    entries.forEach(ts => {
+      if (!tsSet.has(ts - day)) {
+        curStreak = 1;
+        curStart  = ts;
+      } else {
+        curStreak++;
+      }
+      if (curStreak > bestStreak) {
+        bestStreak = curStreak;
+        bestStart  = curStart;
+        bestEnd    = ts;
+      }
     });
 
-    padded.forEach(count => {
-      let lvl = 0;
-      if (count >= 1)  lvl = 1;
-      if (count >= 3)  lvl = 2;
-      if (count >= 6)  lvl = 3;
-      if (count >= 10) lvl = 4;
+    // current streak
+    const now     = Math.floor(Date.now() / 1000);
+    const todayTs = now - (now % day);
+    let curActive = 0, t = todayTs;
+    while (tsSet.has(t) || tsSet.has(t - day)) {
+      if (tsSet.has(t)) curActive++;
+      t -= day;
+      if (curActive > bestStreak) break;
+    }
 
-      const cell = document.createElement('div');
-      cell.className = 'heat-cell' + (lvl ? ' heat-' + lvl : '');
-      cell.title = `${count} submission${count !== 1 ? 's' : ''}`;
-      wrap.appendChild(cell);
-    });
+    document.getElementById('streakNum').textContent = bestStreak;
+
+    const fmt = ts => new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    document.getElementById('streakSub').textContent =
+      bestStreak > 0
+        ? `${fmt(bestStart)} → ${fmt(bestEnd)} · current: ${curActive} days`
+        : 'no streak found';
   }
+
 </script>
 </body>
 </html>
